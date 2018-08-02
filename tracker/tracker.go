@@ -1,7 +1,6 @@
 package tracker
 
 import(
-	"strings"
 	"time"
 	"sort"
 	"github.com/headzoo/surf/agent"
@@ -52,7 +51,6 @@ type Tracker struct {
 	ServiceURL    			string
 	EventSortingDirection   SortDirection
 	browser 	   			*browser.Browser
-	browser.Browser
 }
 
 // SetRequestTimeout set time to wait for response from tracking service
@@ -104,7 +102,7 @@ func (tracker *Tracker) getTrackingEventsFromPage(trackingNumber string) *Events
 	tableDataRows.Each(func (i int, s *goquery.Selection){
 		event := Event{}
 		s.ChildrenFiltered("td").Each(func (j int, s2 *goquery.Selection){
-			value := strings.TrimSpace(s2.Text())
+			value := s2.Text()
 			if j==0 {
 				if dt, err := time.Parse("02-01-2006 15:04 PM", value); err == nil {
 					event.Date = dt

@@ -27,7 +27,7 @@ func main() {
 	events := *t.Track(trackingNumber)
 	
 	lines := make([]string, len(events)+1)
-	lines[0] = "Data|Ngjarja|Vendndodhja|Destinacioni"
+	lines[0] = "Data|Ngjarja|Zyra|Destinacioni"
 	for i, e := range events {
         lines[i+1] = e.ToString()
 	}
