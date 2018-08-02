@@ -4,15 +4,19 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/eltonlika/posta-tracking/tracker"
 	"github.com/ryanuber/columnize"
 )
 
-var tableHeadear = "Data|Ngjarja|Zyra|Destinacioni"
-
 func main() {
-	descendingPtr := flag.Bool("desc", false, "sort events in descending order")
+	descendingPtr := flag.Bool("descending", false, "sort events in descending order")
+	noHeaderPtr := flag.Bool("no-header", false, "do not print header line")
+	timeoutPtr := flag.Uint("timeout", 8, "number of seconds to wait for response from tracking service")
+	delimiterPtr := flag.String("delimiter", "  ", "string to use as column delimiter (separator)")
+
 	flag.Parse()
 	args := flag.Args()
 
@@ -21,26 +25,41 @@ func main() {
 		os.Exit(1)
 	}
 
-	trackingNumber := args[0]
-
 	t := tracker.NewTracker()
-	if descendingPtr != nil && *descendingPtr {
-		t.EventSortingDirection = tracker.SortDescending
-	}
-	events := *t.Track(trackingNumber)
+	t.SortEventsDescending = *descendingPtr
+	t.SetRequestTimeout(time.Second * time.Duration(*timeoutPtr))
 
-	lines := make([]string, len(events)+1)
-	lines[0] = tableHeadear
+	trackingNumber := args[0]
+	events := *t.Track(trackingNumber)
+	eventsTable := formatTrackingEventsAsTable(events, *noHeaderPtr, *delimiterPtr)
+	fmt.Println(eventsTable)
+}
+
+func formatTrackingEventsAsTable(events tracker.Events, noHeader bool, delimiter string) string {
+	var table []string
+	var rows []string
+
+	if noHeader {
+		table = make([]string, len(events))
+		rows = table
+	} else {
+		table = make([]string, len(events)+1)
+		table[0] = "#|Kodi|Data|Ngjarja|Zyra|Destinacioni"
+		rows = table[1:]
+	}
+
+	sp := "|"
 	for i, e := range events {
-		lines[i+1] = e.ToString()
+		num := strconv.Itoa(i + 1)
+		date := e.Date.Format("2006-01-02 15:04 PM")
+		rows[i] = num + sp + e.TrackingNumber + sp + date + sp + e.Description + sp + e.Location + sp + e.Destination
 	}
 
 	config := columnize.DefaultConfig()
-	config.Delim = "|"
-	config.Glue = "\t"
+	config.Delim = sp
+	config.Glue = delimiter
 	config.Prefix = ""
 	config.Empty = ""
 	config.NoTrim = false
-	result := columnize.Format(lines, config)
-	fmt.Println(result)
+	return columnize.Format(table, config)
 }

@@ -4,24 +4,26 @@ import (
 	"sort"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
+	q "github.com/PuerkitoBio/goquery"
 	"github.com/headzoo/surf/agent"
 	"github.com/headzoo/surf/browser"
 	"gopkg.in/headzoo/surf.v1"
 )
 
+const (
+	// DefaultServiceURL url of tracking service page
+	DefaultServiceURL = "https://gjurmo.postashqiptare.al/tracking.aspx"
+	// DefaultTimeout is 8 seconds of waiting for a tracking request
+	DefaultTimeout = time.Second * 8
+)
+
 // Event holds tracking event information
 type Event struct {
-	Date        time.Time
-	Description string
-	Location    string
-	Destination string
-}
-
-// ToString convert Event struct to string representation
-func (e Event) ToString() string {
-	sep := "|"
-	return e.Date.Format("2006-01-02 15:04 PM") + sep + e.Description + sep + e.Location + sep + e.Destination
+	TrackingNumber string
+	Date           time.Time
+	Description    string
+	Location       string
+	Destination    string
 }
 
 // Events array type
@@ -31,32 +33,20 @@ func (events Events) Len() int           { return len(events) }
 func (events Events) Less(i, j int) bool { return events[i].Date.Before(events[j].Date) }
 func (events Events) Swap(i, j int)      { events[i], events[j] = events[j], events[i] }
 
-// SortDirection int alias to specify event sorting direction
-type SortDirection int
-
-const (
-	// SortAscending flag to sort events in ascending order
-	SortAscending SortDirection = 0
-	// SortDescending flag to sort events in descending order
-	SortDescending SortDirection = 1
-	// DefaultEventSortingDirection of events is Ascending
-	DefaultEventSortingDirection SortDirection = SortAscending
-	// DefaultRequestTimeout is 8 seconds of waiting for a tracking request
-	DefaultRequestTimeout = time.Second * 8
-	// DefaultServiceURL url of tracking service page
-	DefaultServiceURL = "https://gjurmo.postashqiptare.al/tracking.aspx"
-)
+// Sort events by specified direction
+func (events *Events) Sort(descending bool) {
+	if descending {
+		sort.Stable(sort.Reverse(events))
+	} else {
+		sort.Stable(events)
+	}
+}
 
 // Tracker struct mantains tracker instance & configuration
 type Tracker struct {
-	ServiceURL            string
-	EventSortingDirection SortDirection
-	browser               *browser.Browser
-}
-
-// SetRequestTimeout set time to wait for response from tracking service
-func (tracker *Tracker) SetRequestTimeout(timeout time.Duration) {
-	tracker.browser.SetTimeout(timeout)
+	ServiceURL           string
+	SortEventsDescending bool
+	browser              *browser.Browser
 }
 
 // NewTracker creates new tracker instance
@@ -64,13 +54,25 @@ func NewTracker() *Tracker {
 	bow := surf.NewBrowser()
 	bow.SetAttribute(browser.FollowRedirects, true)
 	bow.SetUserAgent(agent.Chrome())
-	bow.SetTimeout(DefaultRequestTimeout)
+	bow.SetTimeout(DefaultTimeout)
 
 	return &Tracker{
-		ServiceURL:            DefaultServiceURL,
-		EventSortingDirection: DefaultEventSortingDirection,
-		browser:               bow,
+		ServiceURL:           DefaultServiceURL,
+		SortEventsDescending: false,
+		browser:              bow,
 	}
+}
+
+// Track returns tracking events for given tracking number
+func (tracker *Tracker) Track(trackingNumber string) *Events {
+	events := tracker.getTrackingEventsFromPage(trackingNumber)
+	events.Sort(tracker.SortEventsDescending)
+	return events
+}
+
+// SetRequestTimeout set time to wait for response from tracking service
+func (tracker *Tracker) SetRequestTimeout(timeout time.Duration) {
+	tracker.browser.SetTimeout(timeout)
 }
 
 func (tracker *Tracker) getTrackingEventsFromPage(trackingNumber string) *Events {
@@ -94,45 +96,39 @@ func (tracker *Tracker) getTrackingEventsFromPage(trackingNumber string) *Events
 	}
 
 	// get only rows with data cells, exclude header row
-	tableDataRows := bow.Dom().Find("table tr").FilterFunction(func(_ int, s *goquery.Selection) bool {
-		return s.ChildrenFiltered("td").Length() > 0
-	})
-
+	tableDataRows := bow.Dom().Find("table tr").FilterFunction(isTableDataRow)
 	events := make(Events, tableDataRows.Length())
 
-	tableDataRows.Each(func(i int, s *goquery.Selection) {
-		event := Event{}
-		s.ChildrenFiltered("td").Each(func(j int, s2 *goquery.Selection) {
-			value := s2.Text()
-			if j == 0 {
-				if dt, err := time.Parse("02-01-2006 15:04 PM", value); err == nil {
-					event.Date = dt
-				} else {
-					panic(err)
-				}
-			} else if j == 1 {
-				event.Description = value
-			} else if j == 2 {
-				event.Location = value
-			} else if j == 3 {
-				event.Destination = value
-			}
-		})
+	tableDataRows.Each(func(i int, s *q.Selection) {
+		event := tableDataRowToEvent(s)
+		event.TrackingNumber = trackingNumber
 		events[i] = event
 	})
 
 	return &events
 }
 
-// Track returns tracking events for given tracking number
-func (tracker *Tracker) Track(trackingNumber string) *Events {
-	events := tracker.getTrackingEventsFromPage(trackingNumber)
+func isTableDataRow(_ int, s *q.Selection) bool {
+	return s.ChildrenFiltered("td").Length() > 0
+}
 
-	if tracker.EventSortingDirection == SortAscending {
-		sort.Stable(events)
-	} else if tracker.EventSortingDirection == SortDescending {
-		sort.Stable(sort.Reverse(events))
+func tableDataRowToEvent(s *q.Selection) Event {
+	rowValues := s.ChildrenFiltered("td").Map(textExtracter)
+	if len(rowValues) < 4 {
+		panic("Row has less values than expected: ")
 	}
 
-	return events
+	eventDate, err := time.Parse("02-01-2006 15:04 PM", rowValues[0])
+	if err != nil {
+		panic(err)
+	}
+
+	return Event{
+		Date:        eventDate,
+		Description: rowValues[1],
+		Location:    rowValues[2],
+		Destination: rowValues[3],
+	}
 }
+
+func textExtracter(_ int, s *q.Selection) string { return s.Text() }
