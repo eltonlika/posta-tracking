@@ -24,12 +24,14 @@ const (
 	DefaultRequestTimeout = time.Second * 8
 )
 
+// Tracker struct mantains Tracker configuration
 type Tracker struct {
-	ServiceUrl     string
+	ServiceURL     string
 	RequestTimeout time.Duration
 	EventSorting   SortDirection
 }
 
+// Track returns tracking events for given tracking number
 func (*Tracker) Track(trackingNumber string) []Event {
 	return make([]Event, 0)
 }
