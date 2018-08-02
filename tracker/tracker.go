@@ -18,6 +18,12 @@ type Event struct {
 	Destination string
 }
 
+// ToString convert Event struct to string representation
+func(e Event) ToString() string{
+	d := "|"
+	return e.Date.Format("2006-01-02 15:04 PM") + d + e.Description + d + e.Location + d + e.Destination;
+}
+
 // Events array type
 type Events []Event
 

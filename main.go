@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"flag"
-	"encoding/json"
 	"github.com/eltonlika/posta-tracking/tracker"
+	"github.com/ryanuber/columnize"
 )
 
 func main() {
@@ -24,10 +24,20 @@ func main() {
 	if  descendingPtr != nil && *descendingPtr {
 		t.EventSortingDirection = tracker.SortDescending
 	}
-	events := t.Track(trackingNumber)
+	events := *t.Track(trackingNumber)
+	
+	lines := make([]string, len(events)+1)
+	lines[0] = "Data|Ngjarja|Vendndodhja|Destinacioni"
+	for i, e := range events {
+        lines[i+1] = e.ToString()
+	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("","")
-	encoder.SetEscapeHTML(false)
-	encoder.Encode(events)
+	config := columnize.DefaultConfig()
+	config.Delim = "|"
+	config.Glue = "\t"
+	config.Prefix = ""
+	config.Empty = ""
+	config.NoTrim = false
+	result := columnize.Format(lines, config)
+    fmt.Println(result)
 }
