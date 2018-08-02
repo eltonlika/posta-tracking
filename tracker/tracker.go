@@ -52,6 +52,7 @@ type Tracker struct {
 	ServiceURL    			string
 	EventSortingDirection   SortDirection
 	browser 	   			*browser.Browser
+	browser.Browser
 }
 
 // SetRequestTimeout set time to wait for response from tracking service

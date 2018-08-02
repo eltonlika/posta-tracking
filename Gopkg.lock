@@ -22,14 +22,12 @@
     "jar",
     "util"
   ]
-  revision = "60198774ccce43e1d26c80e961497b7d262460b3"
-  version = "v1.0.0"
+  revision = "362d36475b4dc845ecdbb02e185a32f56a0c53d7"
 
 [[projects]]
   name = "github.com/ryanuber/columnize"
   packages = ["."]
-  revision = "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
-  version = "v2.1.0"
+  revision = "abc90934186a77966e2beeac62ed966aac0561d5"
 
 [[projects]]
   branch = "master"
@@ -43,12 +41,11 @@
 [[projects]]
   name = "gopkg.in/headzoo/surf.v1"
   packages = ["."]
-  revision = "60198774ccce43e1d26c80e961497b7d262460b3"
-  version = "v1.0.0"
+  revision = "362d36475b4dc845ecdbb02e185a32f56a0c53d7"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "92fb10171c20d46188d99e264da15ba20bfaaa7bffeff111963586e43cf81881"
+  inputs-digest = "fb65582ff88d300de1c4a66747d273c7e5b647fc33c9470c4932ab8e76643146"
   solver-name = "gps-cdcl"
   solver-version = 1

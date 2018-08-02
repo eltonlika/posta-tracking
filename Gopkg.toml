@@ -31,15 +31,15 @@
 
 [[constraint]]
   name = "github.com/headzoo/surf"
-  version = "1.0.0"
+  revision = "362d36475b4dc845ecdbb02e185a32f56a0c53d7"
 
 [[constraint]]
   name = "github.com/ryanuber/columnize"
-  version = "2.1.0"
+  revision = "abc90934186a77966e2beeac62ed966aac0561d5"
 
 [[constraint]]
   name = "gopkg.in/headzoo/surf.v1"
-  version = "1.0.0"
+  revision = "362d36475b4dc845ecdbb02e185a32f56a0c53d7"
 
 [prune]
   go-tests = true
