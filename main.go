@@ -3,36 +3,31 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
-
-	"github.com/headzoo/surf/agent"
-	"github.com/headzoo/surf/browser"
-	"gopkg.in/headzoo/surf.v1"
+	"flag"
+	"encoding/json"
+	"github.com/eltonlika/posta-tracking/tracker"
 )
 
-var trackingURL = "https://gjurmo.postashqiptare.al/tracking.aspx"
-var timeout = time.Second * 8
-
 func main() {
-	trackingNumber := os.Args[2]
+	descendingPtr := flag.Bool("desc", false, "sort events in descending order")
+	flag.Parse()
+	args := flag.Args()
 
-	bow := surf.NewBrowser()
-	bow.SetAttribute(browser.FollowRedirects, true)
-	bow.SetUserAgent(agent.Chrome())
-	bow.SetTimeout(timeout)
-
-	err := bow.Open(trackingURL)
-	if err != nil {
-		panic(err)
+	if len(args) < 1{
+		fmt.Println("No tracking number given")
+		os.Exit(1)
 	}
 
-	fm, _ := bow.Form("#form1")
-	fm.Input("txt_barcode", trackingNumber)
-	fm.Input("hBarCodes", trackingNumber)
-	bow.Click("")
-	if fm.Submit() != nil {
-		panic(err)
-	}
+	trackingNumber := args[0]
 
-	fmt.Println(bow.Body())
+	t := tracker.NewTracker()
+	if  descendingPtr != nil && *descendingPtr {
+		t.EventSortingDirection = tracker.SortDescending
+	}
+	events := t.Track(trackingNumber)
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("","")
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(events)
 }
