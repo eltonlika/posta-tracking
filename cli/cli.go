@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/eltonlika/posta-tracking/formatter"
 	"github.com/eltonlika/posta-tracking/tracker"
 )
 
@@ -65,8 +66,10 @@ func Run() {
 		panic(err)
 	}
 
-	printer := EventsPrinter{Delimiter: opts.Delimiter, NoHeader: opts.NoHeader}
-	err = printer.Print(events, os.Stdout)
+	formatter := formatter.NewEventsFormatter()
+	formatter.NoHeader = opts.NoHeader
+	formatter.Delimiter = opts.Delimiter
+	err = formatter.Print(events, os.Stdout)
 	if err != nil {
 		panic(err)
 	}

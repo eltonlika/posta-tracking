@@ -1,4 +1,4 @@
-package cli
+package formatter
 
 import (
 	"fmt"
@@ -9,14 +9,22 @@ import (
 	"github.com/ryanuber/columnize"
 )
 
-// EventsPrinter struct holds events printer configuration
-type EventsPrinter struct {
+// EventsFormatter struct holds events printer configuration
+type EventsFormatter struct {
 	NoHeader  bool
 	Delimiter string
 }
 
+// NewEventsFormatter return new instance of EventsFormatter
+func NewEventsFormatter() *EventsFormatter {
+	return &EventsFormatter{
+		NoHeader:  false,
+		Delimiter: "  ",
+	}
+}
+
 // Format return string of formatted events
-func (p *EventsPrinter) Format(events tracker.Events) string {
+func (p *EventsFormatter) Format(events tracker.Events) string {
 	var table []string
 	var rows []string
 
@@ -46,7 +54,7 @@ func (p *EventsPrinter) Format(events tracker.Events) string {
 }
 
 // Print events
-func (p *EventsPrinter) Print(events tracker.Events, w io.Writer) error {
+func (p *EventsFormatter) Print(events tracker.Events, w io.Writer) error {
 	formattedEvents := p.Format(events)
 	_, err := fmt.Fprintln(w, formattedEvents)
 	return err
