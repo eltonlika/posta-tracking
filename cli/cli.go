@@ -48,13 +48,21 @@ func PrintUsage() {
 	flag.PrintDefaults()
 }
 
+func handleError(err error, showUsageHelp bool) {
+	fmt.Println("Error: " + err.Error())
+
+	if showUsageHelp {
+		PrintUsage()
+	}
+
+	os.Exit(1)
+}
+
 // Run cli client
 func Run() {
 	opts, err := ParseOptions()
 	if err != nil {
-		fmt.Println(err.Error())
-		PrintUsage()
-		os.Exit(1)
+		handleError(err, true)
 	}
 
 	t := tracker.NewTracker()
@@ -63,7 +71,11 @@ func Run() {
 
 	events, err := t.Track(opts.TrackingNumber)
 	if err != nil {
-		panic(err)
+		handleError(err, false)
+	}
+
+	if len(events) == 0 {
+		os.Exit(1)
 	}
 
 	formatter := formatter.NewEventsFormatter()
@@ -71,6 +83,6 @@ func Run() {
 	formatter.Delimiter = opts.Delimiter
 	err = formatter.Print(events, os.Stdout)
 	if err != nil {
-		panic(err)
+		handleError(err, false)
 	}
 }

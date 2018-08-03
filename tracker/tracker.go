@@ -141,7 +141,7 @@ func isTableDataRow(_ int, tr *q.Selection) bool { return tr.ChildrenFiltered("t
 
 func extractEvents(dom *q.Selection) (Events, error) {
 	// get only rows with data cells, exclude header row
-	tableDataRows := dom.Find("table tr").FilterFunction(isTableDataRow)
+	tableDataRows := dom.Find("table#gvTraking tr").FilterFunction(isTableDataRow)
 	events := make(Events, tableDataRows.Length())
 
 	var err error
