@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"errors"
 	"sort"
 	"time"
 
@@ -27,14 +28,14 @@ type Event struct {
 }
 
 // Events array type
-type Events []Event
+type Events [](*Event)
 
 func (events Events) Len() int           { return len(events) }
 func (events Events) Less(i, j int) bool { return events[i].Date.Before(events[j].Date) }
 func (events Events) Swap(i, j int)      { events[i], events[j] = events[j], events[i] }
 
 // Sort events by specified direction
-func (events *Events) Sort(descending bool) {
+func (events Events) Sort(descending bool) {
 	if descending {
 		sort.Stable(sort.Reverse(events))
 	} else {
@@ -64,10 +65,14 @@ func NewTracker() *Tracker {
 }
 
 // Track returns tracking events for given tracking number
-func (tracker *Tracker) Track(trackingNumber string) *Events {
-	events := tracker.getTrackingEventsFromPage(trackingNumber)
+func (tracker *Tracker) Track(trackingNumber string) (*Events, error) {
+	events, err := tracker.getTrackingEventsFromPage(trackingNumber)
+	if err != nil {
+		return nil, err
+	}
+
 	events.Sort(tracker.SortEventsDescending)
-	return events
+	return events, nil
 }
 
 // SetRequestTimeout set time to wait for response from tracking service
@@ -75,60 +80,73 @@ func (tracker *Tracker) SetRequestTimeout(timeout time.Duration) {
 	tracker.browser.SetTimeout(timeout)
 }
 
-func (tracker *Tracker) getTrackingEventsFromPage(trackingNumber string) *Events {
+func (tracker *Tracker) getTrackingEventsFromPage(trackingNumber string) (*Events, error) {
 	bow := tracker.browser
 
 	err := bow.Open(tracker.ServiceURL)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	fm, err := bow.Form("#form1")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	fm.Input("txt_barcode", trackingNumber)
 	fm.Input("hBarCodes", trackingNumber)
 	err = fm.Submit()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// get only rows with data cells, exclude header row
 	tableDataRows := bow.Dom().Find("table tr").FilterFunction(isTableDataRow)
 	events := make(Events, tableDataRows.Length())
 
-	tableDataRows.Each(func(i int, s *q.Selection) {
-		event := tableDataRowToEvent(s)
+	var lastError error
+	tableDataRows.EachWithBreak(func(i int, s *q.Selection) bool {
+		event, err := tableDataRowToEvent(s)
+		if err != nil {
+			lastError = err
+			return false
+		}
+
 		event.TrackingNumber = trackingNumber
 		events[i] = event
+		return true
 	})
 
-	return &events
+	if lastError != nil {
+		return nil, lastError
+	}
+
+	return &events, nil
 }
 
 func isTableDataRow(_ int, s *q.Selection) bool {
 	return s.ChildrenFiltered("td").Length() > 0
 }
 
-func tableDataRowToEvent(s *q.Selection) Event {
+func tableDataRowToEvent(s *q.Selection) (*Event, error) {
 	rowValues := s.ChildrenFiltered("td").Map(textExtracter)
 	if len(rowValues) < 4 {
-		panic("Row has less values than expected: ")
+		return nil, errors.New("Row has less values than expected")
 	}
 
 	eventDate, err := time.Parse("02-01-2006 15:04 PM", rowValues[0])
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return Event{
+	event := Event{
 		Date:        eventDate,
 		Description: rowValues[1],
 		Location:    rowValues[2],
 		Destination: rowValues[3],
 	}
+
+	return &event, nil
 }
 
 func textExtracter(_ int, s *q.Selection) string { return s.Text() }

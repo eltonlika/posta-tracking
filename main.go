@@ -30,8 +30,12 @@ func main() {
 	t.SetRequestTimeout(time.Second * time.Duration(*timeoutPtr))
 
 	trackingNumber := args[0]
-	events := *t.Track(trackingNumber)
-	eventsTable := formatTrackingEventsAsTable(events, *noHeaderPtr, *delimiterPtr)
+	events, err := t.Track(trackingNumber)
+	if err != nil {
+		panic(err)
+	}
+
+	eventsTable := formatTrackingEventsAsTable(*events, *noHeaderPtr, *delimiterPtr)
 	fmt.Println(eventsTable)
 }
 
