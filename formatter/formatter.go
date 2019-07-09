@@ -16,19 +16,19 @@ type EventsFormatter struct {
 }
 
 // NewEventsFormatter return new instance of EventsFormatter
-func NewEventsFormatter() *EventsFormatter {
-	return &EventsFormatter{
+func NewEventsFormatter() EventsFormatter {
+	return EventsFormatter{
 		NoHeader:  false,
 		Delimiter: "  ",
 	}
 }
 
 // Format return string of formatted events
-func (p *EventsFormatter) Format(events tracker.Events) string {
+func (f EventsFormatter) Format(events tracker.Events) string {
 	var table []string
 	var rows []string
 
-	if p.NoHeader {
+	if f.NoHeader {
 		table = make([]string, len(events))
 		rows = table
 	} else {
@@ -46,7 +46,7 @@ func (p *EventsFormatter) Format(events tracker.Events) string {
 
 	config := columnize.DefaultConfig()
 	config.Delim = sp
-	config.Glue = p.Delimiter
+	config.Glue = f.Delimiter
 	config.Prefix = ""
 	config.Empty = ""
 	config.NoTrim = false
@@ -54,8 +54,8 @@ func (p *EventsFormatter) Format(events tracker.Events) string {
 }
 
 // Print events
-func (p *EventsFormatter) Print(events tracker.Events, w io.Writer) error {
-	formattedEvents := p.Format(events)
+func (f EventsFormatter) Print(events tracker.Events, w io.Writer) error {
+	formattedEvents := f.Format(events)
 	_, err := fmt.Fprintln(w, formattedEvents)
 	return err
 }

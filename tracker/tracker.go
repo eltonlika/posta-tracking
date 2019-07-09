@@ -52,13 +52,13 @@ type Tracker struct {
 }
 
 // NewTracker creates new tracker instance
-func NewTracker() *Tracker {
+func NewTracker() Tracker {
 	bow := surf.NewBrowser()
 	bow.SetAttribute(browser.FollowRedirects, true)
 	bow.SetUserAgent(agent.Chrome())
 	bow.SetTimeout(DefaultTimeout)
 
-	return &Tracker{
+	return Tracker{
 		ServiceURL:           DefaultServiceURL,
 		SortEventsDescending: false,
 		browser:              bow,
@@ -66,7 +66,7 @@ func NewTracker() *Tracker {
 }
 
 // Track returns tracking events for given tracking number
-func (tracker *Tracker) Track(trackingNumber string) (Events, error) {
+func (tracker Tracker) Track(trackingNumber string) (Events, error) {
 	events, err := tracker.findTrackingEvents(trackingNumber)
 	if err != nil {
 		return nil, err
@@ -77,11 +77,11 @@ func (tracker *Tracker) Track(trackingNumber string) (Events, error) {
 }
 
 // SetRequestTimeout set time to wait for response from tracking service
-func (tracker *Tracker) SetRequestTimeout(seconds uint) {
+func (tracker Tracker) SetRequestTimeout(seconds uint) {
 	tracker.browser.SetTimeout(time.Second * time.Duration(seconds))
 }
 
-func (tracker *Tracker) findTrackingEvents(trackingNumber string) (Events, error) {
+func (tracker Tracker) findTrackingEvents(trackingNumber string) (Events, error) {
 	bow := tracker.browser
 
 	err := bow.Open(tracker.ServiceURL)
