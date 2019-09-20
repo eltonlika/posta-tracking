@@ -10,6 +10,23 @@ import (
 	"github.com/eltonlika/posta-tracking/tracker"
 )
 
+const (
+	// NoError status returned when program compeltes successfully
+	NoError = iota
+
+	// ErrorInvalidArgs status returned when program has no valid arguments
+	ErrorInvalidArgs
+
+	// ErrorTrackerFailed status returned when tracker execution failed
+	ErrorTrackerFailed
+
+	// ErrorNoEventsFound status returned when no events found for given tracking number
+	ErrorNoEventsFound
+
+	// ErrorOther status returned for any other error
+	ErrorOther
+)
+
 // Options cli options holder struct
 type Options struct {
 	SortDescending bool
@@ -48,21 +65,17 @@ func PrintUsage() {
 	flag.PrintDefaults()
 }
 
-func handleError(err error, showUsageHelp bool) {
+func print(err error) {
 	fmt.Println("Error: " + err.Error())
-
-	if showUsageHelp {
-		PrintUsage()
-	}
-
-	os.Exit(1)
 }
 
 // Run cli client
-func Run() {
+func Run() int {
 	opts, err := ParseOptions()
 	if err != nil {
-		handleError(err, true)
+		print(err)
+		PrintUsage()
+		return ErrorInvalidArgs
 	}
 
 	t := tracker.NewTracker()
@@ -71,11 +84,12 @@ func Run() {
 
 	events, err := t.Track(opts.TrackingNumber)
 	if err != nil {
-		handleError(err, false)
+		print(err)
+		return ErrorTrackerFailed
 	}
 
 	if len(events) == 0 {
-		os.Exit(1)
+		return ErrorNoEventsFound
 	}
 
 	formatter := formatter.NewEventsFormatter()
@@ -83,6 +97,9 @@ func Run() {
 	formatter.Delimiter = opts.Delimiter
 	err = formatter.Print(events, os.Stdout)
 	if err != nil {
-		handleError(err, false)
+		print(err)
+		return ErrorOther
 	}
+
+	return NoError
 }

@@ -82,26 +82,24 @@ func (tracker Tracker) SetRequestTimeout(seconds uint) {
 }
 
 func (tracker Tracker) findTrackingEvents(trackingNumber string) (Events, error) {
-	bow := tracker.browser
+	browser := tracker.browser
 
-	err := bow.Open(tracker.ServiceURL)
-	if err != nil {
+	if err := browser.Open(tracker.ServiceURL); err != nil {
 		return nil, err
 	}
 
-	fm, err := bow.Form("#form1")
+	fm, err := browser.Form("#form1")
 	if err != nil {
 		return nil, err
 	}
 
 	fm.Input("txt_barcode", trackingNumber)
 	fm.Input("hBarCodes", trackingNumber)
-	err = fm.Submit()
-	if err != nil {
+	if err = fm.Submit(); err != nil {
 		return nil, err
 	}
 
-	events, err := extractEvents(bow.Dom())
+	events, err := extractEvents(browser.Dom())
 	if err != nil {
 		return nil, err
 	}

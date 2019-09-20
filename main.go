@@ -1,7 +1,11 @@
 package main
 
-import "github.com/eltonlika/posta-tracking/cli"
+import (
+	"os"
+
+	"github.com/eltonlika/posta-tracking/cli"
+)
 
 func main() {
-	cli.Run()
+	os.Exit(cli.Run())
 }
