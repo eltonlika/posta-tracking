@@ -7,20 +7,27 @@ import (
 	"github.com/eltonlika/posta-tracking/tracker"
 )
 
-func main() {
+func cli() int {
+	var log = os.Stderr.WriteString
+
 	if len(os.Args) < 2 {
-		fmt.Println("Error: No tracking number given")
-		fmt.Printf("Usage: %s <tracking number>\n", os.Args[0])
-		return
+		log(fmt.Sprintf("Error: No tracking number given\nUsage: %s <tracking number>\n", os.Args[0]))
+		return 1
 	}
 
 	events, err := tracker.NewTracker().Track(os.Args[1])
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
-		return
+		log(fmt.Sprintf("Error: %s\n", err.Error()))
+		return 1
 	}
 
 	if events.Len() > 0 {
 		fmt.Println(events)
 	}
+
+	return 0
+}
+
+func main() {
+	os.Exit(cli())
 }
