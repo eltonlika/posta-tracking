@@ -4,21 +4,13 @@ Terminal-based client for Albanian Post tracking service / Klient në terminal p
 Build with ```go build``` or ```go install``` to $GOPATH/bin
 
 ```
-Usage: posta-tracking [OPTIONS] trackingNumber
-  -delimiter string
-    	string to use as column delimiter (separator) (default "  ")
-  -descending
-    	sort events in descending order
-  -no-header
-    	do not print header line
-  -timeout uint
-    	number of seconds to wait for response from tracking service (default 8)
+Usage: ./posta-tracking <tracking number>
 ```
 
 
-Example:
+Example output:
 ```
-» posta-tracking RB560254054SG                                                                                                 
+» posta-tracking RB560254054SG
 #  Kodi           Data                 Ngjarja                                                                       Zyra                                 Destinacioni
 1  RB560254054SG  2018-06-12 02:39 AM  Objekti u fut ne thes / Insert item into bag (Otb)                            Singapor
 2  RB560254054SG  2018-06-21 16:11 PM  U pranua objekt nga jashte / Receive item from abroad (EDI-received)          Posta e Jashtme (mberritje), TIRANA
