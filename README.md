@@ -1,5 +1,5 @@
 # posta-tracking
-Terminal-based client for Albanian Post tracking service / Klient në terminal për shërbimin e gjurmimit të Postës Shqiptare
+TUI client for Albanian Post tracking service
 
 Build with ```go build``` or ```go install``` to $GOPATH/bin
 
