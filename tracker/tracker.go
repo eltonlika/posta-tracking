@@ -1,19 +1,21 @@
 package tracker
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sort"
 	"time"
 
-	q "github.com/PuerkitoBio/goquery"
-	"github.com/headzoo/surf/agent"
-	"github.com/headzoo/surf/browser"
 	"github.com/ryanuber/columnize"
-	"gopkg.in/headzoo/surf.v1"
 )
 
 // ServiceURL url of tracking service page
-const ServiceURL = "https://gjurmo.postashqiptare.al/tracking.aspx"
+const serviceUrl = "https://www.postashqiptare.al/api/"
+const originHeader = "https://www.postashqiptare.al"
+const requestTimeout = 8 * time.Second
 
 // Event holds tracking event information
 type Event struct {
@@ -25,7 +27,6 @@ type Event struct {
 	Destination    string
 }
 
-// Events array type
 type Events []Event
 
 // Sort interface implementations
@@ -42,6 +43,50 @@ func (e Event) String() string {
 		e.Description,
 		e.Location,
 		e.Destination)
+}
+
+// Tracker struct mantains tracker instance & configuration
+type Tracker struct {
+	client http.Client
+}
+
+// NewTracker creates new tracker instance
+func NewTracker() Tracker {
+	return Tracker{http.Client{Timeout: requestTimeout}}
+}
+
+// Track returns tracking events for given tracking number
+func (tracker Tracker) Track(trackingNumber string) (Events, error) {
+	postBody := "kodi=" + trackingNumber
+	request, err := http.NewRequest(http.MethodPost, serviceUrl, bytes.NewBuffer([]byte(postBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Add("Origin", originHeader)
+
+	response, err := tracker.client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	defer response.Body.Close()
+
+	events, err := parseEvents(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Stable(events)
+
+	// set each event's sequence num and tracking number
+	for i := 0; i < events.Len(); i++ {
+		events[i].Num = uint(i + 1)
+		events[i].TrackingNumber = trackingNumber
+	}
+
+	return events, nil
 }
 
 // Events fmt interface implementation
@@ -67,90 +112,31 @@ func (events Events) String() string {
 	return columnize.Format(table, config)
 }
 
-// Tracker struct mantains tracker instance & configuration
-type Tracker struct {
-	browser *browser.Browser
-}
+func parseEvents(reader io.Reader) (Events, error) {
+	var parsed []struct {
+		Date        string `json:"Data"`
+		Description string `json:"Ngjarja"`
+		Location    string `json:"Zyra"`
+		Destination string `json:"Destinacioni"`
+	}
 
-// NewTracker creates new tracker instance
-func NewTracker() Tracker {
-	bow := surf.NewBrowser()
-	bow.SetAttribute(browser.FollowRedirects, true)
-	bow.SetUserAgent(agent.Chrome())
-	return Tracker{browser: bow}
-}
-
-// Track returns tracking events for given tracking number
-func (tracker Tracker) Track(trackingNumber string) (Events, error) {
-	if err := tracker.browser.Open(ServiceURL); err != nil {
+	if err := json.NewDecoder(reader).Decode(&parsed); err != nil {
 		return nil, err
 	}
 
-	form, err := tracker.browser.Form("#form1")
-	if err != nil {
-		return nil, err
-	}
+	events := make(Events, len(parsed))
 
-	form.Input("txt_barcode", trackingNumber)
-	form.Input("hBarCodes", trackingNumber)
-	if err = form.Submit(); err != nil {
-		return nil, err
-	}
-
-	events, err := parseEvents(trackingTableValues(tracker.browser.Dom()))
-	if err != nil {
-		return nil, err
-	}
-
-	sort.Stable(events)
-
-	// set each event's sequence num and tracking number
-	for i := 0; i < events.Len(); i++ {
-		events[i].Num = uint(i + 1)
-		events[i].TrackingNumber = trackingNumber
-	}
-
-	return events, nil
-}
-
-func cellValue(_ int, s *q.Selection) string {
-	return s.Text()
-}
-
-func tdRow(_ int, s *q.Selection) bool {
-	return s.ChildrenFiltered("td").Length() > 0
-}
-
-func trackingTableValues(dom *q.Selection) [][]string {
-	rows := dom.Find("table#gvTraking tr").FilterFunction(tdRow)
-
-	values := make([][]string, rows.Length())
-
-	rows.Each(func(i int, s *q.Selection) {
-		values[i] = s.ChildrenFiltered("td").Map(cellValue)
-	})
-
-	return values
-}
-
-func parseEvents(values [][]string) (Events, error) {
-	events := make(Events, len(values))
-
-	for i, row := range values {
-		if len(row) < 4 {
-			return nil, fmt.Errorf("Row %v has less values than expected", row)
-		}
-
-		date, err := time.Parse("02-01-2006 15:04 PM", row[0])
+	for i, row := range parsed {
+		date, err := time.Parse("02-01-2006 15:04 PM", row.Date)
 		if err != nil {
 			return nil, err
 		}
-
 		events[i] = Event{
 			Date:        date,
-			Description: row[1],
-			Location:    row[2],
-			Destination: row[3]}
+			Description: row.Description,
+			Location:    row.Location,
+			Destination: row.Destination,
+		}
 	}
 
 	return events, nil
